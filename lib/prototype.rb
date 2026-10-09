@@ -30,3 +30,18 @@ end
 
 class PrototypedObject
 end
+
+class PrototypedConstructor
+    def initialize(prototipo)
+        @prototipo = prototipo
+    end
+
+    def new(valores)
+      objeto = PrototypedObject.new
+      objeto.set_prototype(@prototipo)
+      valores.each do |clave,valor|
+        objeto.send("#{clave}=",valor)
+      end
+      objeto
+    end
+end

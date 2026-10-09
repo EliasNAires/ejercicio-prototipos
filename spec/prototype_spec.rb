@@ -31,6 +31,16 @@ describe 'Tests' do
     espadachin.sanar
     expect(espadachin.energia).to eq(110)
   end
+  it "PrototypedConstructor funciona" do
+    guerrero = PrototypedObject.new
+    guerrero.set_property(:energia,100)
+    Guerrero = PrototypedConstructor.new(guerrero)
+    un_guerrero = Guerrero.new({energia:50})
+    expect(un_guerrero.energia).to eq(50)
+
+  end
+
+
 
 
 end

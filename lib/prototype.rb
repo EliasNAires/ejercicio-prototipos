@@ -32,16 +32,31 @@ class PrototypedObject
 end
 
 class PrototypedConstructor
-    def initialize(prototipo)
-        @prototipo = prototipo
-    end
 
-    def new(valores)
-      objeto = PrototypedObject.new
-      objeto.set_prototype(@prototipo)
-      valores.each do |clave,valor|
+    def initialize(prototipo,aplicar_valores = proc {|objeto,valores|
+      valores.each do |clave, valor| 
         objeto.send("#{clave}=",valor)
       end
+    })
+        @prototipo = prototipo
+        @aplicar_valores = aplicar_valores
+    end
+
+    def self.copy(prototipo)
+      aplicar_valores = proc {|objeto|
+        (prototipo.instance_variables - [:@modulo]).each do |variable| 
+          objeto.instance_variable_set(variable, prototipo.instance_variable_get(variable))
+        end
+      }
+      self.new(prototipo,aplicar_valores)
+    end
+
+    def new(*valores)
+      objeto = PrototypedObject.new
+      objeto.set_prototype(@prototipo)
+      @aplicar_valores.call(objeto,*valores)
       objeto
     end
+
+    
 end

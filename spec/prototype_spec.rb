@@ -31,7 +31,7 @@ describe 'Tests' do
     espadachin.sanar
     expect(espadachin.energia).to eq(110)
   end
-  it "PrototypedConstructor funciona" do
+  it "PrototypedConstructor funciona para la creacion a partir de un prototipo" do
     guerrero = PrototypedObject.new
     guerrero.set_property(:energia,100)
     Guerrero = PrototypedConstructor.new(guerrero)

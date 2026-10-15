@@ -22,6 +22,20 @@ module Prototyped
   def set_prototype(object)
     self.module.include(object.module)
   end
+
+  def method_missing(symbol,*args,&block)
+    if symbol.to_s.end_with?('=')
+        simbolo = symbol.to_s.chomp('=').to_sym
+        if args[0].is_a?(Proc)
+            set_method(simbolo,args[0])
+        else
+            set_property(simbolo,args[0])
+        end    
+    else
+        super
+    end
+  end
+
 end
 
 class Object
@@ -29,6 +43,9 @@ class Object
 end
 
 class PrototypedObject
+    def initialize(&block)
+        self.instance_exec(&block)
+    end
 end
 
 class PrototypedConstructor
@@ -37,10 +54,11 @@ class PrototypedConstructor
       valores.each do |clave, valor| 
         objeto.send("#{clave}=",valor)
       end
-    }, cantidad_parametros = aplicar_valores.arity - 1)
+    }, cantidad_parametros = aplicar_valores.arity - 1, &bloque)
         @prototipo = prototipo
         @aplicar_valores = aplicar_valores
         @cantidad_parametros = cantidad_parametros
+        @bloque = bloque
     end
 
     def self.copy(prototipo)
@@ -60,10 +78,32 @@ class PrototypedConstructor
       }, cantidad_total)     
     end
 
+    def self.create(&bloque)
+        prototipo = PrototypedObject.new
+        prototipo.instance_exec(&bloque)
+        PrototypedConstructor.new(prototipo,nil,0)
+    end
+
+    def with(&bloque)
+        PrototypedConstructor.new(@prototipo,bloque)
+    end
+
+    def with_properties(claves)
+        PrototypedConstructor.new(@prototipo,proc {|objeto,*valores|
+        i=0
+        claves.each do |clave| 
+        objeto.send("#{clave}=",valor[i])
+        i = i + 1
+        end
+        })
+    end
+
+
     def new(*valores)
       objeto = PrototypedObject.new
       objeto.set_prototype(@prototipo)
       @aplicar_valores.call(objeto,*valores)
+      objeto.instance_exec(@bloque)
       objeto
     end
 

@@ -124,4 +124,43 @@ describe 'Tests' do
     expect(capitan.rango).to eq("sargento")
   end
 
+    it 'asigno una propiedad con = y la leo' do
+    guerrero_proto = PrototypedObject.new
+    guerrero_proto.energia = 100
+
+    expect(guerrero_proto.energia).to eq(100)
+  end
+
+  it 'asigno un método con = y lo puedo llamar' do
+    guerrero_proto = PrototypedObject.new
+    guerrero_proto.energia = 100
+    guerrero_proto.descansar = proc { self.energia += 20 }
+
+    expect(guerrero_proto.descansar).to eq(120)
+  end
+
+  it 'un guerrero creado con azúcar sintáctico ataca a otro' do
+    guerrero_proto = PrototypedObject.new
+    guerrero_proto.energia = 100
+    expect(guerrero_proto.energia).to eq(100)
+
+    guerrero_proto.potencial_defensivo = 10
+    guerrero_proto.potencial_ofensivo = 30
+
+    guerrero_proto.atacar_a = proc { |otro_guerrero|
+      if otro_guerrero.potencial_defensivo < self.potencial_ofensivo
+        otro_guerrero.recibe_danio(self.potencial_ofensivo - otro_guerrero.potencial_defensivo)
+      end
+    }
+    guerrero_proto.recibe_danio = proc { |delta|
+      self.energia -= delta
+    }
+
+    Guerrero = PrototypedConstructor.copy(guerrero_proto)
+
+    un_guerrero = Guerrero.new
+    Guerrero.new.atacar_a(un_guerrero)
+
+    expect(un_guerrero.energia).to eq(80)
+  end
 end

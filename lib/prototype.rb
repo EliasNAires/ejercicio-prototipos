@@ -44,7 +44,7 @@ end
 
 class PrototypedObject
     def initialize(&block)
-        self.instance_exec(&block)
+        self.instance_exec(&block) if block
     end
 end
 
@@ -58,7 +58,7 @@ class PrototypedConstructor
         @prototipo = prototipo
         @aplicar_valores = aplicar_valores
         @cantidad_parametros = cantidad_parametros
-        @bloque = bloque
+        @bloque = bloque if bloque
     end
 
     def self.copy(prototipo)
@@ -103,7 +103,7 @@ class PrototypedConstructor
       objeto = PrototypedObject.new
       objeto.set_prototype(@prototipo)
       @aplicar_valores.call(objeto,*valores)
-      objeto.instance_exec(@bloque)
+      objeto.instance_exec(@bloque) if bloque
       objeto
     end
 

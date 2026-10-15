@@ -34,8 +34,8 @@ describe 'Tests' do
   it "PrototypedConstructor funciona para la creacion a partir de un prototipo" do
     guerrero = PrototypedObject.new
     guerrero.set_property(:energia,100)
-    Guerrero = PrototypedConstructor.new(guerrero)
-    un_guerrero = Guerrero.new({energia:50})
+    constructor_guerrero = PrototypedConstructor.new(guerrero)
+    un_guerrero = constructor_guerrero.new({energia:50})
     expect(un_guerrero.energia).to eq(50)
 
   end
@@ -156,11 +156,104 @@ describe 'Tests' do
       self.energia -= delta
     }
 
-    Guerrero = PrototypedConstructor.copy(guerrero_proto)
+    constructor_guerrero = PrototypedConstructor.copy(guerrero_proto)
 
-    un_guerrero = Guerrero.new
-    Guerrero.new.atacar_a(un_guerrero)
+    un_guerrero = constructor_guerrero.new
+    constructor_guerrero.new.atacar_a(un_guerrero)
 
     expect(un_guerrero.energia).to eq(80)
+  end
+
+  it 'new con un bloque do...end que usa self' do
+    guerrero = PrototypedObject.new
+    guerrero.energia = 100
+    guerrero.potencial_ofensivo = 30
+    guerrero.potencial_defensivo = 10
+
+    constructor_guerrero = PrototypedConstructor.new(guerrero) do |energia, ofensivo, defensivo|
+      self.energia = energia
+      self.potencial_ofensivo = ofensivo
+      self.potencial_defensivo = defensivo
+    end
+
+    un_guerrero = constructor_guerrero.new(50, 40, 20)
+    expect(un_guerrero.energia).to eq(50)
+    expect(un_guerrero.potencial_ofensivo).to eq(40)
+    expect(un_guerrero.potencial_defensivo).to eq(20)
+  end
+
+  it 'create...with' do
+    constructor_guerrero = PrototypedConstructor.create {
+      self.energia = 100
+      self.potencial_ofensivo = 30
+      self.potencial_defensivo = 10
+    }.with { |energia, ofensivo, defensivo|
+      self.energia = energia
+      self.potencial_ofensivo = ofensivo
+      self.potencial_defensivo = defensivo
+    }
+
+    un_guerrero = constructor_guerrero.new(50, 40, 20)
+    expect(un_guerrero.energia).to eq(50)
+    expect(un_guerrero.potencial_ofensivo).to eq(40)
+    expect(un_guerrero.potencial_defensivo).to eq(20)
+  end
+
+  it 'create sin with copia el estado del prototipo' do
+    constructor_guerrero = PrototypedConstructor.create {
+      self.energia = 100
+    }
+
+    expect(constructor_guerrero.new.energia).to eq(100)
+  end
+
+  it 'with_properties' do
+    constructor_guerrero = PrototypedConstructor.create {
+      self.energia = 100
+      self.potencial_ofensivo = 30
+      self.potencial_defensivo = 10
+    }.with_properties([:energia, :potencial_ofensivo, :potencial_defensivo])
+
+    un_guerrero = constructor_guerrero.new(50, 40, 20)
+    expect(un_guerrero.energia).to eq(50)
+    expect(un_guerrero.potencial_ofensivo).to eq(40)
+    expect(un_guerrero.potencial_defensivo).to eq(20)
+  end
+
+  it 'cambiar el prototype afecta a los objetos ya creados' do
+    constructor_guerrero = PrototypedConstructor.create {
+      self.energia = 100
+      self.potencial_ofensivo = 30
+      self.potencial_defensivo = 10
+    }.with_properties([:energia, :potencial_ofensivo, :potencial_defensivo])
+    un_guerrero = constructor_guerrero.new(100, 30, 10)
+
+    proto_guerrero = constructor_guerrero.prototype
+    proto_guerrero.potencial_ofensivo = proc { 1000 }
+
+    expect(un_guerrero.potencial_ofensivo).to eq(1000)
+  end
+
+  it 'extended con un bloque que usa self' do
+    constructor_guerrero = PrototypedConstructor.create {
+      self.energia = 100
+      self.potencial_ofensivo = 30
+      self.potencial_defensivo = 10
+    }.with { |energia, ofensivo, defensivo|
+      self.energia = energia
+      self.potencial_ofensivo = ofensivo
+      self.potencial_defensivo = defensivo
+    }
+
+    constructor_espadachin = constructor_guerrero.extended { |una_habilidad, un_potencial_espada|
+      self.habilidad = una_habilidad
+      self.potencial_espada = un_potencial_espada
+      self.potencial_ofensivo = proc {
+        @potencial_ofensivo + self.potencial_espada * self.habilidad
+      }
+    }
+
+    espadachin = constructor_espadachin.new(100, 30, 10, 0.5, 30)
+    expect(espadachin.potencial_ofensivo).to eq(45)
   end
 end

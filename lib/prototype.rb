@@ -11,7 +11,14 @@ module Prototyped
   end
 
   def set_property(property, value)
-    self.module.attr_accessor(property)
+    self.module.attr_reader(property)
+    self.module.define_method("#{property}=") do |valor|
+      if valor.is_a?(Proc)
+        set_method(property,valor)
+      else
+        instance_variable_set("@#{property}",valor)
+      end
+    end
     self.send("#{property}=",value)
   end
 
@@ -54,10 +61,10 @@ class PrototypedConstructor
       valores.each do |clave, valor| 
         objeto.send("#{clave}=",valor)
       end
-    }, cantidad_parametros = aplicar_valores.arity - 1, &bloque)
+    }, cantidad_parametros = nil, &bloque)
         @prototipo = prototipo
         @aplicar_valores = aplicar_valores
-        @cantidad_parametros = cantidad_parametros
+        @cantidad_parametros = cantidad_parametros || (bloque ? bloque.arity : aplicar_valores.arity - 1)
         @bloque = bloque if bloque
     end
 
@@ -71,6 +78,14 @@ class PrototypedConstructor
     end
 
     def extended(&extension)
+      if @bloque
+        bloque = @bloque
+        cantidad = @cantidad_parametros
+        return PrototypedConstructor.new(@prototipo, nil, cantidad + extension.arity) do |*valores|
+          instance_exec(*valores.first(cantidad), &bloque)
+          instance_exec(*valores.drop(cantidad), &extension)
+        end
+      end
       cantidad_total = @cantidad_parametros + extension.arity - 1
       PrototypedConstructor.new(@prototipo,proc {|objeto,*valores|
         @aplicar_valores.call(objeto,*(valores.first(@cantidad_parametros)))
@@ -79,31 +94,35 @@ class PrototypedConstructor
     end
 
     def self.create(&bloque)
-        prototipo = PrototypedObject.new
-        prototipo.instance_exec(&bloque)
-        PrototypedConstructor.new(prototipo,nil,0)
+        prototipo = PrototypedObject.new(&bloque)
+        PrototypedConstructor.copy(prototipo)
     end
 
     def with(&bloque)
-        PrototypedConstructor.new(@prototipo,bloque)
+        PrototypedConstructor.new(@prototipo,&bloque)
     end
 
     def with_properties(claves)
         PrototypedConstructor.new(@prototipo,proc {|objeto,*valores|
-        i=0
-        claves.each do |clave| 
-        objeto.send("#{clave}=",valor[i])
-        i = i + 1
+        claves.each_with_index do |clave, i| 
+        objeto.send("#{clave}=",valores[i])
         end
-        })
+        }, claves.size)
     end
 
+
+    def prototype
+      @prototipo
+    end
 
     def new(*valores)
       objeto = PrototypedObject.new
       objeto.set_prototype(@prototipo)
-      @aplicar_valores.call(objeto,*valores)
-      objeto.instance_exec(@bloque) if bloque
+      if @bloque
+        objeto.instance_exec(*valores, &@bloque)
+      else
+        @aplicar_valores.call(objeto,*valores)
+      end
       objeto
     end
 
